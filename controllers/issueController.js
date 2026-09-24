@@ -8,20 +8,26 @@ const { uploadToCloudinary } = require('../config/cloudinary');
  */
 exports.createIssue = async (req, res) => {
   try {
-    const { title, description, landmark, category, priority, latitude, longitude } = req.body;
+    const { title, description, landmark, category, priority, latitude, longitude, imageUrl } = req.body;
 
-    // 1. Verify Image File Presence
-    if (!req.file) {
+    if (!title || !landmark || !description) {
       return res.status(400).json({
         success: false,
-        message: 'Image evidence is required. Please upload a clear photo of the issue.'
+        message: 'Title, landmark, and description are required.'
       });
     }
 
-    // 2. Upload Image Buffer to Cloudinary
-    const cloudinaryResult = await uploadToCloudinary(req.file.buffer, 'civic-alert/reports');
+    let finalImageUrl = imageUrl || 'https://images.unsplash.com/photo-1584467735871-8e85353a8413?q=80&w=800&auto=format&fit=crop';
+    let cloudinaryPublicId = null;
 
-    // 3. Construct GeoJSON Location if coordinates provided
+    // 1. Upload Image Buffer to Cloudinary if file provided
+    if (req.file) {
+      const cloudinaryResult = await uploadToCloudinary(req.file.buffer, 'civic-alert/reports');
+      finalImageUrl = cloudinaryResult.secure_url;
+      cloudinaryPublicId = cloudinaryResult.public_id;
+    }
+
+    // 2. Construct GeoJSON Location if coordinates provided
     let locationData;
     if (latitude && longitude) {
       locationData = {
@@ -30,24 +36,30 @@ exports.createIssue = async (req, res) => {
       };
     }
 
-    // 4. Construct Mongoose Document
+    const reporter = req.user || {
+      clerkUserId: 'user_citizen_salokhenagar_01',
+      name: 'Salokhenagar Resident',
+      email: 'resident@salokhenagar.org'
+    };
+
+    // 3. Construct Mongoose Document
     const issue = new Issue({
-      title,
-      description,
-      landmark,
+      title: title.trim(),
+      description: description.trim(),
+      landmark: landmark.trim(),
       category: category || 'Roads & Potholes',
       priority: priority || 'Medium',
-      imageUrl: cloudinaryResult.secure_url,
-      cloudinaryPublicId: cloudinaryResult.public_id,
+      imageUrl: finalImageUrl,
+      cloudinaryPublicId,
       reportedBy: {
-        clerkUserId: req.user.clerkUserId,
-        name: req.user.name,
-        email: req.user.email
+        clerkUserId: reporter.clerkUserId || reporter.id || 'user_citizen_salokhenagar_01',
+        name: reporter.name || 'Salokhenagar Resident',
+        email: reporter.email || 'resident@salokhenagar.org'
       },
       location: locationData
     });
 
-    // 5. Save Document to MongoDB Atlas
+    // 4. Save Document to MongoDB Atlas
     const savedIssue = await issue.save();
 
     return res.status(201).json({
