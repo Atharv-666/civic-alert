@@ -15,26 +15,15 @@ const PORT = process.env.PORT || 5000;
 /* ==========================================================================
    CORS CONFIGURATION (Render Backend <-> Vercel Frontend Interop)
    ========================================================================== */
-const allowedOrigins = [
-  'http://localhost:3000',
-  'http://localhost:5173',
-  process.env.CLIENT_URL // Vercel Frontend Production URL
-].filter(Boolean);
-
 app.use(
   cors({
-    origin: function (origin, callback) {
-      if (!origin || allowedOrigins.includes(origin) || process.env.NODE_ENV !== 'production') {
-        callback(null, true);
-      } else {
-        callback(null, true); // Permissive CORS for smooth interop
-      }
-    },
+    origin: true, // Dynamically reflects request origin for all Vercel domains & localhost
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Clerk-User-Id', 'X-User-Role', 'X-User-Name', 'X-User-Email', 'X-Auth-Token']
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Clerk-User-Id', 'X-User-Role', 'X-User-Name', 'X-User-Email', 'X-Auth-Token', 'x-auth-token']
   })
 );
+app.options('*', cors());
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
