@@ -1,4 +1,10 @@
-const { GoogleGenAI } = require('@google/genai');
+let GoogleGenAI;
+try {
+  const genaiModule = require('@google/genai');
+  GoogleGenAI = genaiModule.GoogleGenAI || genaiModule.default;
+} catch (e) {
+  console.warn('⚠️ @google/genai load fallback active:', e.message);
+}
 
 /**
  * Helper function for smart fallback auto-fill analysis
@@ -82,7 +88,7 @@ exports.autoFillReport = async (req, res) => {
 
     const apiKey = process.env.GEMINI_API_KEY;
 
-    if (apiKey) {
+    if (apiKey && GoogleGenAI) {
       try {
         const ai = new GoogleGenAI({ apiKey });
         const systemInstruction = `You are CivicAI, an expert municipal triage assistant for Salokhenagar, Kolhapur.
@@ -167,7 +173,7 @@ Return ONLY a raw JSON object with key names:
  */
 exports.chatWithAi = async (req, res) => {
   try {
-    const { message, history } = req.body;
+    const { message } = req.body;
 
     if (!message || message.trim().length === 0) {
       return res.status(400).json({
@@ -178,7 +184,7 @@ exports.chatWithAi = async (req, res) => {
 
     const apiKey = process.env.GEMINI_API_KEY;
 
-    if (apiKey) {
+    if (apiKey && GoogleGenAI) {
       try {
         const ai = new GoogleGenAI({ apiKey });
         const systemInstruction = `You are CivicAI Assistant, the friendly, helpful AI bot for Salokhenagar Municipal Ward Portal, Kolhapur.

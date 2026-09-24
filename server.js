@@ -7,6 +7,7 @@ const issueRoutes = require('./routes/issueRoutes');
 const aiRoutes = require('./routes/aiRoutes');
 const authRoutes = require('./routes/authRoutes');
 const adminAuthRoutes = require('./routes/adminAuthRoutes');
+const User = require('./models/User');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -23,16 +24,15 @@ const allowedOrigins = [
 app.use(
   cors({
     origin: function (origin, callback) {
-      // Allow requests with no origin (like mobile apps, curl, postman)
-      if (!origin || allowedOrigins.includes(origin)) {
+      if (!origin || allowedOrigins.includes(origin) || process.env.NODE_ENV !== 'production') {
         callback(null, true);
       } else {
-        callback(null, true); // Permissive CORS for development preview
+        callback(null, true); // Permissive CORS for smooth interop
       }
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Clerk-User-Id', 'X-User-Role', 'X-User-Name', 'X-User-Email']
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Clerk-User-Id', 'X-User-Role', 'X-User-Name', 'X-User-Email', 'X-Auth-Token']
   })
 );
 
@@ -40,18 +40,35 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 /* ==========================================================================
-   DATABASE CONNECTION (MongoDB Atlas)
+   DATABASE CONNECTION & AUTO-ADMIN SEEDING
    ========================================================================== */
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/civic_alert_salokhenagar';
 
 mongoose
   .connect(MONGODB_URI)
-  .then(() => {
+  .then(async () => {
     console.log('✅ Connected to MongoDB Atlas successfully.');
+    
+    // Auto-seed initial admin account if not already created
+    try {
+      const adminEmail = (process.env.ADMIN_EMAIL || 'admin@salokhenagar.org').toLowerCase();
+      const existingAdmin = await User.findOne({ email: adminEmail });
+      if (!existingAdmin) {
+        const newAdmin = new User({
+          name: process.env.ADMIN_NAME || 'Salokhenagar Municipal Admin',
+          email: adminEmail,
+          password: process.env.ADMIN_PASSWORD || 'Admin@12345',
+          role: 'admin'
+        });
+        await newAdmin.save();
+        console.log(`🎉 Auto-seeded initial admin account: ${adminEmail}`);
+      }
+    } catch (seedErr) {
+      console.warn('⚠️ Auto-seed admin warning:', seedErr.message);
+    }
   })
   .catch((err) => {
     console.warn('⚠️ MongoDB Connection Warning:', err.message);
-    console.log('ℹ️ Running in memory-buffered mode. Connect MongoDB Atlas URI for persistent storage.');
   });
 
 /* ==========================================================================
@@ -105,8 +122,8 @@ app.use((err, req, res, next) => {
    SERVER INITIALIZATION
    ========================================================================== */
 if (process.env.NODE_ENV !== 'test') {
-  app.listen(PORT, () => {
-    console.log(`🚀 Civic Alert Server active on http://localhost:${PORT}`);
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 Civic Alert Server active on port ${PORT}`);
     console.log(`📍 Serving Salokhenagar, Kolhapur Community Issue Platform`);
   });
 }
