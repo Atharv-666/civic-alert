@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Civic Alert - Salokhenagar, Kolhapur Community Issue System</title>
+  
+  <!-- Google Fonts: Outfit & Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- React 18 & Babel CDN for instant browser execution -->
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #090d16;
+      color: #f8fafc;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      font-family: 'Outfit', sans-serif;
+    }
+    .glass-panel {
+      background: rgba(30, 41, 59, 0.7);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .glass-card {
+      background: rgba(30, 41, 59, 0.5);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      transition: all 0.25s ease-in-out;
+    }
+    .glass-card:hover {
+      border-color: rgba(99, 102, 241, 0.4);
+      transform: translateY(-2px);
+      box-shadow: 0 10px 30px -10px rgba(99, 102, 241, 0.2);
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState } = React;
+
+    const INITIAL_ISSUES = [
+      {
+        _id: 'issue_001',
+        title: 'Severe Pothole Cluster on Kalamba Water Plant Road',
+        description: 'Deep pothole cluster created due to recent heavy monsoon rains causing severe traffic slowdown and bike skidding risk near the water tank.',
+        landmark: 'Near Kalamba Water Filter Gate, Ward No. 4, Salokhenagar',
+        category: 'Roads & Potholes',
+        priority: 'High',
+        imageUrl: 'client/public/images/pothole.jpg',
+        status: 'Pending',
+        reportedBy: { name: 'Amit Salokhe', email: 'amit.salokhe@salokhenagar.org' },
+        upvoteCount: 14,
+        hasUpvoted: true,
+        createdAt: '2026-08-13T10:00:00.000Z'
+      },
+      {
+        _id: 'issue_002',
+        title: 'Damaged Municipal Street Light Pole at Rankala Junction',
+        description: 'Street light pole damaged during storm, leaving the street pitch dark after 7 PM.',
+        landmark: 'Opposite Rankala Lake Gate Road, Ward No. 2, Salokhenagar',
+        category: 'Street Lighting',
+        priority: 'Medium',
+        imageUrl: 'client/public/images/streetlight.jpg',
+        status: 'In Progress',
+        reportedBy: { name: 'Priya Patil', email: 'priya.patil@example.com' },
+        upvoteCount: 8,
+        hasUpvoted: false,
+        statusHistory: [{ comment: 'Electrical team dispatched by Kolhapur Municipal Officers.' }],
+        createdAt: '2026-08-12T14:30:00.000Z'
+      },
+      {
+        _id: 'issue_003',
+        title: 'Overflowing Waste Dustbin near Commercial Market',
+        description: 'Garbage bin overflowing, causing foul smell and blocking pedestrian walkway near commercial shops.',
+        landmark: 'Main Bazaar Road, Near Shivaji Statue, Salokhenagar',
+        category: 'Waste Management',
+        priority: 'High',
+        imageUrl: 'https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?w=800&auto=format&fit=crop&q=80',
+        status: 'Resolved',
+        reportedBy: { name: 'Suhas Kadam', email: 'suhas.kadam@example.com' },
+        upvoteCount: 21,
+        hasUpvoted: false,
+        statusHistory: [{ comment: 'Sanitation truck cleared waste bin completely.' }],
+        createdAt: '2026-08-11T09:15:00.000Z'
+      }
+    ];
+
+    function App() {
+      const [issues, setIssues] = useState(INITIAL_ISSUES);
+      const [activeTab, setActiveTab] = useState('feed');
+      const [statusFilter, setStatusFilter] = useState('All');
+
+      // Form state
+      const [title, setTitle] = useState('');
+      const [description, setDescription] = useState('');
+      const [landmark, setLandmark] = useState('');
+      const [category, setCategory] = useState('Roads & Potholes');
+      const [imagePreview, setImagePreview] = useState(null);
+
+      const handleUpvote = (id) => {
+        setIssues(prev => prev.map(iss => {
+          if (iss._id === id) {
+            return {
+              ...iss,
+              hasUpvoted: !iss.hasUpvoted,
+              upvoteCount: iss.hasUpvoted ? iss.upvoteCount - 1 : iss.upvoteCount + 1
+            };
+          }
+          return iss;
+        }));
+      };
+
+      const handleStatusChange = (id, newStatus) => {
+        setIssues(prev => prev.map(iss => {
+          if (iss._id === id) {
+            return { ...iss, status: newStatus };
+          }
+          return iss;
+        }));
+      };
+
+      const handleReportSubmit = (e) => {
+        e.preventDefault();
+        const newDoc = {
+          _id: `issue_${Date.now()}`,
+          title,
+          description,
+          landmark,
+          category,
+          priority: 'Medium',
+          imageUrl: imagePreview || 'client/public/images/pothole.jpg',
+          status: 'Pending',
+          reportedBy: { name: 'Resident Amit Salokhe', email: 'resident@salokhenagar.org' },
+          upvoteCount: 1,
+          hasUpvoted: true,
+          createdAt: new Date().toISOString()
+        };
+        setIssues([newDoc, ...issues]);
+        setTitle('');
+        setDescription('');
+        setLandmark('');
+        setImagePreview(null);
+        setActiveTab('feed');
+      };
+
+      const filteredIssues = issues.filter(iss => statusFilter === 'All' || iss.status === statusFilter);
+
+      return (
+        <div className="min-h-screen flex flex-col">
+          {/* Header Navbar */}
+          <header className="sticky top-0 z-50 glass-panel border-b border-slate-800">
+            <div className="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="w-11 h-11 rounded-2xl bg-indigo-600 flex items-center justify-center font-black text-xl text-white">CA</div>
+                <div>
+                  <div className="flex items-center space-x-2">
+                    <h1 className="text-xl font-bold text-white tracking-tight">CIVIC ALERT</h1>
+                    <span className="px-2 py-0.5 text-[10px] font-bold rounded bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                      Salokhenagar
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-400">Kolhapur Municipal Reporting Network</p>
+                </div>
+              </div>
+
+              <nav className="flex space-x-1 bg-slate-900/90 p-1.5 rounded-2xl border border-slate-800">
+                <button onClick={() => setActiveTab('feed')} className={`px-4 py-2 text-xs font-semibold rounded-xl ${activeTab === 'feed' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'}`}>
+                  Community Feed ({issues.length})
+                </button>
+                <button onClick={() => setActiveTab('report')} className={`px-4 py-2 text-xs font-semibold rounded-xl ${activeTab === 'report' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'}`}>
+                  + Report Issue
+                </button>
+                <button onClick={() => setActiveTab('admin')} className={`px-4 py-2 text-xs font-semibold rounded-xl ${activeTab === 'admin' ? 'bg-amber-600 text-white' : 'text-slate-400 hover:text-white'}`}>
+                  Authority Console
+                </button>
+              </nav>
+            </div>
+          </header>
+
+          {/* Body */}
+          <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-8">
+            <div className="rounded-3xl p-8 mb-8 bg-gradient-to-r from-indigo-950 via-slate-900 to-slate-950 border border-indigo-500/20 shadow-2xl">
+              <span className="px-3 py-1 text-xs font-semibold rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                Salokhenagar Community Portal • Kolhapur
+              </span>
+              <h2 className="text-3xl font-extrabold text-white mt-2">Report civic issues. Track resolution status in real-time.</h2>
+              <p className="text-slate-300 text-sm mt-2">Direct line for residents of Salokhenagar to municipal authorities for potholes, lights, and waste cleanup.</p>
+            </div>
+
+            {activeTab === 'feed' && (
+              <div className="space-y-6">
+                <div className="glass-panel p-4 rounded-2xl flex space-x-2">
+                  {['All', 'Pending', 'In Progress', 'Resolved'].map(st => (
+                    <button key={st} onClick={() => setStatusFilter(st)} className={`px-4 py-2 text-xs font-semibold rounded-xl ${statusFilter === st ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'}`}>
+                      {st}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {filteredIssues.map(issue => (
+                    <div key={issue._id} className="glass-card rounded-2xl overflow-hidden flex flex-col justify-between">
+                      <div className="relative h-48 bg-slate-900">
+                        <img src={issue.imageUrl} alt={issue.title} className="w-full h-full object-cover" />
+                        <div className="absolute top-3 right-3">
+                          <span className={`px-3 py-1 text-xs font-bold rounded-full ${
+                            issue.status === 'Pending' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' :
+                            issue.status === 'In Progress' ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30' :
+                            'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                          }`}>
+                            {issue.status}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="p-5 space-y-3 flex-1 flex flex-col justify-between">
+                        <div>
+                          <h3 className="text-lg font-bold text-white leading-snug">{issue.title}</h3>
+                          <p className="text-xs text-indigo-400 mt-1">📍 {issue.landmark}</p>
+                          <p className="text-xs text-slate-400 mt-2">{issue.description}</p>
+                        </div>
+                        {issue.statusHistory && (
+                          <div className="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800 text-xs text-slate-300">
+                            <span className="font-semibold text-slate-400">Authority Note:</span> "{issue.statusHistory[0].comment}"
+                          </div>
+                        )}
+                        <div className="pt-3 border-t border-slate-800 flex items-center justify-between">
+                          <span className="text-[11px] text-slate-500">Reported by {issue.reportedBy.name}</span>
+                          <button onClick={() => handleUpvote(issue._id)} className={`px-3 py-1.5 rounded-xl text-xs font-bold ${issue.hasUpvoted ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-300'}`}>
+                            👍 {issue.upvoteCount}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'report' && (
+              <div className="glass-panel max-w-xl mx-auto p-8 rounded-3xl space-y-6">
+                <h2 className="text-2xl font-bold text-white">Report a Civic Issue</h2>
+                <form onSubmit={handleReportSubmit} className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">Title *</label>
+                    <input type="text" required placeholder="e.g. Broken Water Pipe" value={title} onChange={e => setTitle(e.target.value)} className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-white focus:outline-none focus:border-indigo-500" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">Landmark in Salokhenagar *</label>
+                    <input type="text" required placeholder="e.g. Near Kalamba Road" value={landmark} onChange={e => setLandmark(e.target.value)} className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-white focus:outline-none focus:border-indigo-500" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">Description *</label>
+                    <textarea required rows="3" placeholder="Describe the issue..." value={description} onChange={e => setDescription(e.target.value)} className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-white focus:outline-none focus:border-indigo-500"></textarea>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">Photo Evidence *</label>
+                    <input type="file" accept="image/*" onChange={e => e.target.files[0] && setImagePreview(URL.createObjectURL(e.target.files[0]))} className="w-full text-xs text-slate-400" />
+                    {imagePreview && <img src={imagePreview} alt="Preview" className="mt-2 h-32 rounded-xl object-cover" />}
+                  </div>
+                  <button type="submit" className="w-full py-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold">
+                    Submit Community Report
+                  </button>
+                </form>
+              </div>
+            )}
+
+            {activeTab === 'admin' && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-4 gap-4">
+                  <div className="glass-card p-5 rounded-2xl border-l-4 border-indigo-500">
+                    <p className="text-xs text-slate-400 font-semibold">TOTAL REPORTS</p>
+                    <p className="text-3xl font-bold text-white">{issues.length}</p>
+                  </div>
+                  <div className="glass-card p-5 rounded-2xl border-l-4 border-amber-500">
+                    <p className="text-xs text-slate-400 font-semibold">PENDING</p>
+                    <p className="text-3xl font-bold text-amber-400">{issues.filter(i => i.status === 'Pending').length}</p>
+                  </div>
+                  <div className="glass-card p-5 rounded-2xl border-l-4 border-blue-500">
+                    <p className="text-xs text-slate-400 font-semibold">IN PROGRESS</p>
+                    <p className="text-3xl font-bold text-blue-400">{issues.filter(i => i.status === 'In Progress').length}</p>
+                  </div>
+                  <div className="glass-card p-5 rounded-2xl border-l-4 border-emerald-500">
+                    <p className="text-xs text-slate-400 font-semibold">RESOLVED</p>
+                    <p className="text-3xl font-bold text-emerald-400">{issues.filter(i => i.status === 'Resolved').length}</p>
+                  </div>
+                </div>
+
+                <div className="glass-panel rounded-2xl overflow-hidden">
+                  <div className="p-4 bg-slate-900 border-b border-slate-800 font-bold text-white">Salokhenagar Municipal Work Queue</div>
+                  <table className="w-full text-left text-xs text-slate-300">
+                    <thead className="bg-slate-900/80 text-slate-400">
+                      <tr>
+                        <th className="p-4">Photo</th>
+                        <th className="p-4">Title & Landmark</th>
+                        <th className="p-4">Status</th>
+                        <th className="p-4">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800">
+                      {issues.map(issue => (
+                        <tr key={issue._id}>
+                          <td className="p-4"><img src={issue.imageUrl} className="w-12 h-12 rounded-lg object-cover" /></td>
+                          <td className="p-4">
+                            <div className="font-bold text-white">{issue.title}</div>
+                            <div className="text-slate-400 text-xs">📍 {issue.landmark}</div>
+                          </td>
+                          <td className="p-4 font-bold">{issue.status}</td>
+                          <td className="p-4 space-x-2">
+                            <button onClick={() => handleStatusChange(issue._id, 'In Progress')} className="px-3 py-1 rounded bg-blue-600 text-white font-bold">Start Work</button>
+                            <button onClick={() => handleStatusChange(issue._id, 'Resolved')} className="px-3 py-1 rounded bg-emerald-600 text-white font-bold">Mark Resolved</button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </main>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
