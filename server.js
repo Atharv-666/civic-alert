@@ -13,17 +13,20 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 /* ==========================================================================
-   CORS CONFIGURATION (Render Backend <-> Vercel Frontend Interop)
+   FAIL-PROOF CORS MIDDLEWARE (Render Backend <-> Vercel Frontend Interop)
    ========================================================================== */
-app.use(
-  cors({
-    origin: true, // Dynamically reflects request origin for all Vercel domains & localhost
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Clerk-User-Id', 'X-User-Role', 'X-User-Name', 'X-User-Email', 'X-Auth-Token', 'x-auth-token']
-  })
-);
-app.options('*', cors());
+app.use((req, res, next) => {
+  const origin = req.headers.origin || '*';
+  res.header('Access-Control-Allow-Origin', origin);
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, X-Clerk-User-Id, X-User-Role, X-User-Name, X-User-Email, X-Auth-Token, x-auth-token');
+
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  next();
+});
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
